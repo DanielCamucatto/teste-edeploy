@@ -74,6 +74,30 @@ function App() {
     setHistorico([])
   }
 
+  // Função para formatar valor em padrão brasileiro
+  const formatarValorBrasileiro = (valor) => {
+    // Remove tudo que não é número
+    const apenasNumeros = valor.replace(/\D/g, '')
+    if (!apenasNumeros) return ''
+    
+    // Converte para número e formata com 2 casas decimais
+    const numero = parseInt(apenasNumeros, 10)
+    const centavos = numero % 100
+    const reais = Math.floor(numero / 100)
+    
+    // Formata os reais com separador de milhares (ponto)
+    const reaisFormatado = reais.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+    
+    // Retorna no formato 1.200,00
+    return `${reaisFormatado},${centavos.toString().padStart(2, '0')}`
+  }
+
+  const handleSalarioChange = (e) => {
+    const valor = e.target.value
+    const formatado = formatarValorBrasileiro(valor)
+    setQ4Salario(formatado)
+  }
+
   const handleQ1 = async (e) => {
     e.preventDefault()
     setLoading(true)
@@ -127,10 +151,12 @@ function App() {
     setLoading(true)
     setError(null)
     try {
+      // Converte formato brasileiro (1.200,00) para número (1200.00)
+      const salarioFormatado = parseFloat(q4Salario.replace(/\./g, '').replace(',', '.'))
       const res = await axios.post(`${API_URL}/q4-rescisao`, {
         data_admissao: q4DataAdm,
         data_demissao: q4DataDem,
-        salario: parseFloat(q4Salario)
+        salario: salarioFormatado
       })
       setQ4Result(res.data)
       salvarNoHistorico(4, res.data)
@@ -386,14 +412,15 @@ function App() {
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Último Salário (R$)</label>
                     <input
-                      type="number"
-                      step="0.01"
+                      type="text"
+                      inputMode="numeric"
                       required
                       value={q4Salario}
-                      onChange={e => setQ4Salario(e.target.value)}
-                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="Ex: 12000.00"
+                      onChange={handleSalarioChange}
+                      className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-3 focus:ring-blue-500 focus:border-blue-500 font-mono text-lg"
+                      placeholder="Ex: 12.000,00"
                     />
+                    <p className="text-xs text-gray-500 mt-1">Formato: 1.200,00 (mil e duzentos)</p>
                   </div>
                   <button type="submit" disabled={loading} className="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">
                     {loading ? 'Calculando...' : 'Calcular Direitos'}
